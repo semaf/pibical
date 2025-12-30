@@ -17,6 +17,32 @@ import caldav
 from frappe.utils.password import get_decrypted_password
 from frappe.utils import get_datetime, get_datetime_str, strip_html
 
+from urllib.parse import quote
+
+def build_caldav_principal_url(base_url: str, username: str) -> str:
+    if not base_url:
+        return base_url
+
+    u_enc = quote(username, safe="")
+    url = base_url.strip().rstrip("/") + "/"
+
+    # SOGo / Mailcow
+    if "/SOGo/dav" in url:
+        if url.rstrip("/").endswith("/SOGo/dav"):
+            return url.rstrip("/") + "/" + u_enc + "/"
+        return url
+
+    # Nextcloud
+    if "/remote.php/dav/" in url:
+        if "/principals/" in url:
+            if "/users/" in url:
+                return url
+            return url + "users/" + username + "/"
+        return url + "principals/users/" + username + "/"
+
+    # Fallback
+    return url.rstrip("/") + "/users/" + username
+
 def get_user_timezone():
   """Get timezone from user settings or system default"""
   user_timezone = frappe.db.get_value("User", frappe.session.user, "time_zone")
@@ -140,9 +166,9 @@ def get_calendar(nuser):
   fp_user = frappe.get_doc("User", nuser)
   if fp_user.caldav_url and fp_user.caldav_username and fp_user.caldav_token:
     if fp_user.caldav_url[-1] == "/":
-      caldav_url = fp_user.caldav_url + "users/" + fp_user.caldav_username
+      caldav_url = build_caldav_principal_url(fp_user.caldav_url, fp_user.caldav_username)
     else:
-      caldav_url = fp_user.caldav_url + "/users/" + fp_user.caldav_username
+      caldav_url = build_caldav_principal_url(fp_user.caldav_url, fp_user.caldav_username)
     # print(caldav_url)
     caldav_username = fp_user.caldav_username
     caldav_token = get_decrypted_password('User', nuser, 'caldav_token', False)
@@ -226,9 +252,9 @@ def sync_caldav_event_by_user(doc, method=None):
       cal_name = ucal[len(ucal)-2]
       # Get CalDav URL, CalDav User and Token
       if fp_user.caldav_url[-1] == "/":
-        caldav_url = fp_user.caldav_url + "users/" + fp_user.caldav_username
+        caldav_url = build_caldav_principal_url(fp_user.caldav_url, fp_user.caldav_username)
       else:
-        caldav_url = fp_user.caldav_url + "/users/" + fp_user.caldav_username
+        caldav_url = build_caldav_principal_url(fp_user.caldav_url, fp_user.caldav_username)
       caldav_username = fp_user.caldav_username
       caldav_token = get_decrypted_password('User', frappe.session.user, 'caldav_token', False)
       
@@ -446,9 +472,9 @@ def remove_caldav_event(doc, method=None):
         cal_name = ucal[len(ucal)-2]
       # Get CalDav URL, CalDav User and Token
       if fp_user.caldav_url[-1] == "/":
-        caldav_url = fp_user.caldav_url + "users/" + fp_user.caldav_username
+        caldav_url = build_caldav_principal_url(fp_user.caldav_url, fp_user.caldav_username)
       else:
-        caldav_url = fp_user.caldav_url + "/users/" + fp_user.caldav_username
+        caldav_url = build_caldav_principal_url(fp_user.caldav_url, fp_user.caldav_username)
       caldav_username = fp_user.caldav_username
       caldav_token = get_decrypted_password('User', frappe.session.user, 'caldav_token', False)
       
@@ -577,9 +603,9 @@ def sync_outside_caldav():
         try:
           # Get CalDav URL, CalDav User and Token
           if caldav_user.caldav_url[-1] == "/":
-            caldav_url = caldav_user.caldav_url + "users/" + caldav_user.caldav_username
+            caldav_url = build_caldav_principal_url(caldav_user.caldav_url, caldav_user.caldav_username)
           else:
-            caldav_url = caldav_user.caldav_url + "/users/" + caldav_user.caldav_username
+            caldav_url = build_caldav_principal_url(caldav_user.caldav_url, caldav_user.caldav_username)
           caldav_username = caldav_user.caldav_username
           caldav_token = get_decrypted_password('User', caldav_user.name, 'caldav_token', False)
           # Set connection to caldav calendar with CalDav user credentials
