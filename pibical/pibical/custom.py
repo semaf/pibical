@@ -19,6 +19,8 @@ from frappe.utils import get_datetime, get_datetime_str, strip_html
 
 from urllib.parse import quote
 
+logger = frappe.logger("pibical_uid_debug", allow_site=True, file_count=5)
+
 def build_caldav_principal_url(base_url: str, username: str) -> str:
     """Build CalDAV principal URL based on server type"""
     if not base_url:
@@ -251,11 +253,9 @@ def sync_caldav_event_by_user(doc, method=None):
         str_uid = datetime.now().strftime("%Y%m%dT%H%M%S")
         doc.event_uid = 'frappe' + hashlib.md5(str_uid.encode('utf-8')).hexdigest() + f'@{uid_domain}'
 
-    frappe.log_error(
-        f"UID DEBUG -> local.site={frappe.local.site} uid_domain={uid_domain} event_uid={doc.event_uid}",
-        "PibiCal UID Debug"
-    )
-    
+        logger = frappe.logger("pibical_uid_debug", allow_site=True, file_count=5)
+        logger.error(f"UID DEBUG -> local.site={frappe.local.site} uid_domain={uid_domain} event_uid={doc.event_uid}")
+
     uidstamp = doc.event_uid
     
     # Check if caldav_id_url is set
