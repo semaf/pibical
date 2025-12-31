@@ -76,10 +76,11 @@ def generate_ics_for_event(event, user_tz=None):
     ical_event = Event()
     
     # Generate UID if not exists
+    uid_domain = frappe.local.site
     if event.event_uid:
         ical_event['uid'] = event.event_uid
     else:
-        ical_event['uid'] = hashlib.md5(f"{event.name}{datetime.now()}".encode()).hexdigest() + "@pibico.es"
+        ical_event['uid'] = hashlib.md5(f"{event.name}{datetime.now()}".encode()).hexdigest() + f"@{uid_domain}"
     
     # Basic properties
     ical_event.add('summary', event.subject)
@@ -245,9 +246,10 @@ def sync_caldav_event_by_user(doc, method=None):
     
     # Create uid for new events
     is_new_event = not doc.event_uid
+    uid_domain = frappe.local.site
     if not doc.event_uid:
         str_uid = datetime.now().strftime("%Y%m%dT%H%M%S")
-        doc.event_uid = 'frappe' + hashlib.md5(str_uid.encode('utf-8')).hexdigest() + '@pibico.es'
+        doc.event_uid = 'frappe' + hashlib.md5(str_uid.encode('utf-8')).hexdigest() + f'@{uid_domain}'
     
     uidstamp = doc.event_uid
     
