@@ -250,6 +250,11 @@ def sync_caldav_event_by_user(doc, method=None):
     if not doc.event_uid:
         str_uid = datetime.now().strftime("%Y%m%dT%H%M%S")
         doc.event_uid = 'frappe' + hashlib.md5(str_uid.encode('utf-8')).hexdigest() + f'@{uid_domain}'
+
+    frappe.log_error(
+        f"UID DEBUG -> local.site={frappe.local.site} uid_domain={uid_domain} event_uid={doc.event_uid}",
+        "PibiCal UID Debug"
+    )
     
     uidstamp = doc.event_uid
     
